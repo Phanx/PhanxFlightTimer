@@ -1,0 +1,12 @@
+## Interface: 50200
+## Version: 5.2.0.wowi:revision
+
+## Author: Phanx
+## X-Email: addons@phanx.net
+## X-Copyright: Copyright (c) 2013 Phanx. All rights reserved.
+## X-License: See the accompanying LICENSE file for details.
+
+## SavedVariables: PhanxFlightData
+
+Addon.lua
+Data.lua
