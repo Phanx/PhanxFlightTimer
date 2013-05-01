@@ -1,7 +1,7 @@
 PhanxFlightData = {}
 
 local _, defaults = ...
-local data, startPoint, startTime, endPoint
+local data, startPoint, startTime, endPoint, guildPerk
 
 local L = {}
 L.EstimatedTime = "Estimated time:"
@@ -93,15 +93,47 @@ function Addon:PLAYER_LOGIN()
 	self:RegisterEvent("PLAYER_CONTROL_GAINED")
 end
 
+local currentPoint
+
+TaxiFrame:HookScript("OnShow", function(self)
+	for i = 1, NumTaxiNodes() do
+		if TaxiNodeGetType(i) == "CURRENT" then
+			currentPoint = strmatch(TaxiNodeName(i), "[^,]+")
+			break
+		end
+	end
+end)
+
+hooksecurefunc("TaxiNodeOnButtonEnter", function(button)
+	local i = button:GetID()
+	if TaxiNodeGetType(i) == "REACHABLE" then
+		local name = strmatch(TaxiNodeName(i), "[^,]+")
+		local t = data[currentPoint] and data[currentPoint][name] or defaults[currentPoint] and defaults[currentPoint][name]
+		if t then
+			if IsInGuild() and GetGuildLevel() >= 21 then
+				t = floor(t / 1.25 + 0.5)
+			end
+			if t > 60 then
+				GameTooltip:AddDoubleLine(L.EstimatedTime, format(L.TimeMinSec, t/60, mod(t,60)), 1, 0.82, 0, 1, 1, 1)
+			else
+				GameTooltip:AddDoubleLine(L.EstimatedTime, format(L.TimeSec, t), 1, 0.82, 0, 1, 1, 1)
+			end
+		else
+			GameTooltip:AddDoubleLine(L.EstimatedTime, UNKNOWN, 1, 0.82, 0, 0.1, 0.1, 1)
+		end
+		GameTooltip:Show()
+	end
+end)
+
 hooksecurefunc("TakeTaxiNode", function(node)
 	--print("TakeTaxiNode", node)
 	startPoint, startTime, endTime = nil, nil, nil
 	for i = 1, NumTaxiNodes() do
 		if i == node then
-			endPoint = strmatch(TaxiNodeName(i), "[^,]+")
-		elseif TaxiNodeGetType(i) == "CURRENT" then
-			startPoint = strmatch(TaxiNodeName(i), "[^,]+")
 			startTime = GetTime()
+			startPoint = currentPoint
+			endPoint = strmatch(TaxiNodeName(i), "[^,]+")
+			break
 		end
 	end
 	--print("    Flying from", startPoint, "to", endPoint, "[^,]+"))
@@ -114,8 +146,12 @@ function Addon:PLAYER_CONTROL_LOST()
 		if now - startTime < 1 then
 			--print("    Flight started")
 			startTime = now
+			guildPerk = IsInGuild() and GetGuildLevel() >= 21
 			local t = data[startPoint] and data[startPoint][endPoint] or defaults[startPoint] and defaults[startPoint][endPoint]
 			if t then
+				if guildPerk then
+					t = floor(t / 1.25 + 0.5)
+				end
 				--print("    Expected time", floor(t/60), "m", mod(t,60), "s")
 				endTime = startTime + t
 				self.bar:SetMinMaxValues(startTime, endTime)
@@ -137,12 +173,21 @@ end
 function Addon:PLAYER_CONTROL_GAINED()
 	--print("PLAYER_CONTROL_GAINED")
 	if startTime then
-		local t = floor(GetTime() - startTime + 0.5)
-		if not defaults[startPoint] or t ~= defaults[startPoint][endPoint] then
-			data[startPoint] = data[startPoint] or {}
-			data[startPoint][endPoint] = t
-			--print("   Flight ended")
-			--print("   Elapsed time", floor(t/60), "m", floor(mod(t,60)), "s")
+		local stillHasPerk = IsInGuild() and GetGuildLevel() >= 21
+		if guildPerk == stillHasPerk then
+			-- Don't save if the player joined/left a guild during the flight.
+			local t = GetTime() - startTime
+			if guildPerk then
+				t = floor(t * 1.25 + 0.5)
+			else
+				t = floor(t + 0.5)
+			end
+			if not defaults[startPoint] or t ~= defaults[startPoint][endPoint] then
+				data[startPoint] = data[startPoint] or {}
+				data[startPoint][endPoint] = t
+				--print("   Flight ended")
+				--print("   Elapsed time", floor(t/60), "m", floor(mod(t,60)), "s")
+			end
 		end
 	end
 	self:Hide()
