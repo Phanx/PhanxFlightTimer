@@ -1,15 +1,16 @@
 PhanxFlightData = {}
 
 local _, defaults = ...
-local data, startPoint, startTime, endPoint, guildPerk
+local data, startPoint, startTime, endPoint, currentPoint
+local guildPerk, inWorld, timeOutOfWorld, tookPort
 
-local L = {}
-L.EstimatedTime = "Estimated time:"
-L.FlyingFrom = "Flying from:"
-L.FlyingTo = "Flying to:"
-L.TimeMinSec = gsub(MINUTE_ONELETTER_ABBR, "%s", "") .. " " .. gsub(SECOND_ONELETTER_ABBR, "%s", "")
-L.TimeSec = gsub(SECOND_ONELETTER_ABBR, "%s", "")
-
+local L = {
+	EstimatedTime = "Estimated time:",
+	FlyingFrom = "Flying from:",
+	FlyingTo = "Flying to:",
+	TimeMinSec = gsub(MINUTE_ONELETTER_ABBR, "%s", "") .. " " .. gsub(SECOND_ONELETTER_ABBR, "%s", ""),
+	TimeSec = gsub(SECOND_ONELETTER_ABBR, "%s", ""),
+}
 if GetLocale():match("^es") then
 	L.EstimatedTime = "Tiempo estimado:"
 	L.FlyingFrom = "Volando de:"
@@ -91,9 +92,9 @@ function Addon:PLAYER_LOGIN()
 
 	self:RegisterEvent("PLAYER_CONTROL_LOST")
 	self:RegisterEvent("PLAYER_CONTROL_GAINED")
+	self:RegisterEvent("PLAYER_ENTERING_WORLD")
+	self:RegisterEvent("PLAYER_LEAVING_WORLD")
 end
-
-local currentPoint
 
 TaxiFrame:HookScript("OnShow", function(self)
 	for i = 1, NumTaxiNodes() do
@@ -128,6 +129,7 @@ end)
 hooksecurefunc("TakeTaxiNode", function(node)
 	--print("TakeTaxiNode", node)
 	startPoint, startTime, endTime = nil, nil, nil
+	inWorld, timeOutOfWorld, tookPort = true, 0, nil
 	for i = 1, NumTaxiNodes() do
 		if i == node then
 			startTime = GetTime()
@@ -172,7 +174,7 @@ end
 
 function Addon:PLAYER_CONTROL_GAINED()
 	--print("PLAYER_CONTROL_GAINED")
-	if startTime then
+	if startTime and inWorld and not tookPort then
 		local stillHasPerk = IsInGuild() and GetGuildLevel() >= 21
 		if guildPerk == stillHasPerk then
 			-- Don't save if the player joined/left a guild during the flight.
@@ -193,6 +195,18 @@ function Addon:PLAYER_CONTROL_GAINED()
 	self:Hide()
 	startPoint, startTime, endTime = nil, nil, nil
 end
+
+function Addon:PLAYER_LEAVING_WORLD()
+	inWorld = nil
+end
+
+function Addon:PLAYER_ENTERING_WORLD()
+	inWorld = true
+end
+
+hooksecurefunc("AcceptBattlefieldPort", function(index, accept) tookPort = accept and true end)
+hooksecurefunc("ConfirmSummon", function() tookPort = true end)
+hooksecurefunc("CompleteLFGRoleCheck", function(bool) tookPort = bool end)
 
 Addon:Hide()
 Addon:SetScript("OnUpdate", function(self, elapsed)
