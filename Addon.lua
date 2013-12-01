@@ -11,7 +11,7 @@ local L = {
 	TimeMinSec = gsub(MINUTE_ONELETTER_ABBR, "%s", "") .. " " .. gsub(SECOND_ONELETTER_ABBR, "%s", ""),
 	TimeSec = gsub(SECOND_ONELETTER_ABBR, "%s", ""),
 }
-if GetLocale():match("^es") then
+if strsub(GetLocale(), 1, 2) == "es" then
 	L.EstimatedTime = "Tiempo estimado:"
 	L.FlyingFrom = "Volando de:"
 	L.FlyingTo = "Volando a:"
