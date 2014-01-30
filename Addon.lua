@@ -1,3 +1,15 @@
+--[[--------------------------------------------------------------------
+	PhanxFlightTimer
+	Simple flight timer bar.
+	Copyright (c) 2013 Phanx <addons@phanx.net>. All rights reserved.
+	See the accompanying LICENSE file for more information.
+	http://www.wowinterface.com/downloads/info22654-PhanxTooltip.html
+	http://wow.curseforge.com/addons/phanxtooltip/
+	http://www.curse.com/addons/wow/phanxtooltip
+----------------------------------------------------------------------]]
+
+local TEXTURE = oUFPhanxConfig and oUFPhanxConfig.statusbar or "Interface\\AddOns\\PhanxMedia\\statusbar\\Stone"
+
 PhanxFlightData = {}
 
 local _, defaults = ...
@@ -11,7 +23,11 @@ local L = {
 	TimeMinSec = gsub(MINUTE_ONELETTER_ABBR, "%s", "") .. " " .. gsub(SECOND_ONELETTER_ABBR, "%s", ""),
 	TimeSec = gsub(SECOND_ONELETTER_ABBR, "%s", ""),
 }
-if strsub(GetLocale(), 1, 2) == "es" then
+if GetLocale() == "deDE" then
+	L.EstimatedTime = ""
+	L.FlyingFrom = "Fliegend aus:"
+	L.FlyingTo = "Fliegt nach:"
+elseif strmatch(GetLocale(), "^es") then
 	L.EstimatedTime = "Tiempo estimado:"
 	L.FlyingFrom = "Volando de:"
 	L.FlyingTo = "Volando a:"
@@ -73,11 +89,11 @@ function Addon:PLAYER_LOGIN()
 	if PhanxBorder then
 		self.bar:ClearAllPoints()
 		self.bar:SetAllPoints(self)
-		self.bar:SetStatusBarTexture("Interface\\AddOns\\PhanxMedia\\statusbar\\BlizzStone2")
+		self.bar:SetStatusBarTexture(TEXTURE)
 
 		self.bg:ClearAllPoints()
 		self.bg:SetAllPoints(self)
-		self.bg:SetTexture("Interface\\AddOns\\PhanxMedia\\statusbar\\BlizzStone2")
+		self.bg:SetTexture(TEXTURE)
 		self.bg:SetVertexColor(0.2, 0.2, 0.2, 1)
 
 		self.text:ClearAllPoints()
