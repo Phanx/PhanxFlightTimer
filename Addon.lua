@@ -1,7 +1,7 @@
 --[[--------------------------------------------------------------------
 	PhanxFlightTimer
 	Simple flight timer bar.
-	Copyright (c) 2013 Phanx <addons@phanx.net>. All rights reserved.
+	Copyright (c) 2013-2014 Phanx <addons@phanx.net>. All rights reserved.
 	See the accompanying LICENSE file for more information.
 	http://www.wowinterface.com/downloads/info22654-PhanxTooltip.html
 	http://wow.curseforge.com/addons/phanxtooltip/
