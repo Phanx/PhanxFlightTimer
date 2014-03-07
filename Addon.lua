@@ -24,8 +24,8 @@ local L = {
 	TimeSec = gsub(SECOND_ONELETTER_ABBR, "%s", ""),
 }
 if GetLocale() == "deDE" then
-	L.EstimatedTime = ""
-	L.FlyingFrom = "Fliegend aus:"
+	L.EstimatedTime = "Geschätzte Flugzeit:"
+	L.FlyingFrom = "Fliegt von:"
 	L.FlyingTo = "Fliegt nach:"
 elseif strmatch(GetLocale(), "^es") then
 	L.EstimatedTime = "Tiempo estimado:"
