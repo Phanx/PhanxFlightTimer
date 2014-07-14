@@ -8,7 +8,7 @@
 	http://www.curse.com/addons/wow/phanxtooltip
 ----------------------------------------------------------------------]]
 
-local TEXTURE = oUFPhanxConfig and oUFPhanxConfig.statusbar or "Interface\\AddOns\\PhanxMedia\\statusbar\\Stone"
+local TEXTURE = "Interface\\AddOns\\PhanxMedia\\statusbar\\Qlight"
 
 PhanxFlightData = {}
 
@@ -65,7 +65,7 @@ Addon:SetScript("OnEvent", function(self, event, ...)
 end)
 
 function Addon:PLAYER_LOGIN()
-	local _, faction = UnitFactionGroup("player")
+	local faction = UnitFactionGroup("player")
 	if not faction or faction == "" then
 		-- Pandaren
 		self:RegisterEvent("PLAYER_LEVEL_UP")
@@ -82,7 +82,7 @@ function Addon:PLAYER_LOGIN()
 	PhanxFlightDefaultData = defaults
 	defaults = defaults[faction]
 	if not defaults then
-		print(format("ERROR: Bad faction name %q", faction))
+		print(format("|cffff4444[PhanxFlightTimer]|r ERROR: Bad faction name %q", faction))
 	end
 
 	self:SetPoint("TOP", 0, -168)
@@ -193,7 +193,7 @@ function Addon:PLAYER_CONTROL_GAINED()
 	if startTime and inWorld and not tookPort then
 		local stillHasPerk = IsInGuild() and GetGuildLevel() >= 21
 		if guildPerk == stillHasPerk then
-			-- Don't save if the player joined/left a guild during the flight.
+			-- Only save if the player's guild status didn't change during the flight.
 			local t = GetTime() - startTime
 			if guildPerk then
 				t = floor(t * 1.25 + 0.5)
@@ -201,10 +201,15 @@ function Addon:PLAYER_CONTROL_GAINED()
 				t = floor(t + 0.5)
 			end
 			if not defaults[startPoint] or t ~= defaults[startPoint][endPoint] then
+				--print("   Flight ended")
+				--print("   Elapsed time", floor(t/60), "min", floor(mod(t,60)), "sec")
 				data[startPoint] = data[startPoint] or {}
 				data[startPoint][endPoint] = t
-				--print("   Flight ended")
-				--print("   Elapsed time", floor(t/60), "m", floor(mod(t,60)), "s")
+			end
+			if not defaults[endPoint] and (not data[endPoint] or not data[endPoint][startPoint]) then
+				-- Reverse path probably has the same time, use it if there's nothing else
+				data[endPoint] = data[endPoint] or {}
+				data[endPoint][startPoint] = t
 			end
 		end
 	end

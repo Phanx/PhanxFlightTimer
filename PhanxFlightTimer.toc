@@ -6,7 +6,9 @@
 ## X-Copyright: Copyright (c) 2013-2014 Phanx. All rights reserved.
 ## X-License: See the accompanying LICENSE file for details.
 
-## SavedVariables: PhanxFlightData
+## SavedVariables: PhanxFlightData, PhanxFlightDataMerged
 
 Addon.lua
 Data.lua
+
+Data2.lua
