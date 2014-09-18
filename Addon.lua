@@ -36,6 +36,7 @@ end
 local Addon = CreateFrame("Frame", "PhanxFlightTimer", UIParent, "MirrorTimerTemplate")
 Addon.bg, Addon.text, Addon.border = Addon:GetRegions()
 Addon.bar = Addon:GetChildren()
+Addon.bar:GetStatusBarTexture():SetDrawLayer("BORDER")
 
 Addon.title = Addon:CreateFontString("$parentTitle", "OVERLAY", "GameFontHighlight")
 Addon.title:SetPoint("BOTTOM", Addon, "TOP", 0, 2)
