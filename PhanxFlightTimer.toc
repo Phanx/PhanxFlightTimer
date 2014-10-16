@@ -1,5 +1,4 @@
-## Interface: 50400
-## Version: 5.4.1.wowi:revision
+## Interface: 60000
 
 ## Author: Phanx
 ## X-Email: addons@phanx.net
