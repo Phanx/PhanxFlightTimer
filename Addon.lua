@@ -128,7 +128,7 @@ hooksecurefunc("TaxiNodeOnButtonEnter", function(button)
 		local name = strmatch(TaxiNodeName(i), "[^,]+")
 		local t = data[currentPoint] and data[currentPoint][name] or defaults[currentPoint] and defaults[currentPoint][name]
 		if t then
-			if IsInGuild() and GetGuildLevel() >= 21 then
+			if IsInGuild() then
 				t = floor(t / 1.25 + 0.5)
 			end
 			if t > 60 then
@@ -165,7 +165,7 @@ function Addon:PLAYER_CONTROL_LOST()
 		if now - startTime < 1 then
 			--print("    Flight started")
 			startTime = now
-			guildPerk = IsInGuild() and GetGuildLevel() >= 21
+			guildPerk = IsInGuild()
 			local t = data[startPoint] and data[startPoint][endPoint] or defaults[startPoint] and defaults[startPoint][endPoint]
 			if t then
 				if guildPerk then
@@ -192,7 +192,7 @@ end
 function Addon:PLAYER_CONTROL_GAINED()
 	--print("PLAYER_CONTROL_GAINED")
 	if startTime and inWorld and not tookPort then
-		local stillHasPerk = IsInGuild() and GetGuildLevel() >= 21
+		local stillHasPerk = IsInGuild()
 		if guildPerk == stillHasPerk then
 			-- Only save if the player's guild status didn't change during the flight.
 			local t = GetTime() - startTime
