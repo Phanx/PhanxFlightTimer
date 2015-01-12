@@ -2,11 +2,9 @@
 
 ## Author: Phanx
 ## X-Email: addons@phanx.net
-## X-Copyright: Copyright (c) 2013-2014 Phanx. All rights reserved.
+## X-Copyright: Copyright (c) 2013-2015 Phanx. All rights reserved.
 
-## SavedVariables: PhanxFlightData, PhanxFlightDataMerged
+## SavedVariables: PhanxFlightData
 
 Addon.lua
 Data.lua
-
-Data2.lua

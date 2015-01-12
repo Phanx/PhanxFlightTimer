@@ -11,12 +11,14 @@
 	your addon, including its name, outside of an optional attribution.
 ----------------------------------------------------------------------]]
 
-local TEXTURE = "Interface\\AddOns\\PhanxMedia\\statusbar\\Qlight"
+local TEXTURE = "Interface\\AddOns\\PhanxMedia\\statusbar\\HalA"
 
-PhanxFlightData = {}
+PhanxFlightTimes = { Alliance = {}, Horde = {} }
+PhanxFlightNames = { Alliance = {}, Horde = {} }
 
 local _, defaults = ...
-local data, startPoint, startTime, endPoint, currentPoint
+local times, names
+local currentName, currentPoint, startName, startPoint, startTime, endName, endPoint
 local guildPerk, inWorld, timeOutOfWorld, tookPort
 
 local L = {
@@ -37,30 +39,6 @@ elseif strmatch(GetLocale(), "^es") then
 end
 
 local Addon = CreateFrame("Frame", "PhanxFlightTimer", UIParent, "MirrorTimerTemplate")
-Addon.bg, Addon.text, Addon.border = Addon:GetRegions()
-Addon.bar = Addon:GetChildren()
-Addon.bar:GetStatusBarTexture():SetDrawLayer("BORDER")
-
-Addon.title = Addon:CreateFontString("$parentTitle", "OVERLAY", "GameFontHighlight")
-Addon.title:SetPoint("BOTTOM", Addon, "TOP", 0, 2)
-
-Addon:SetScript("OnEnter", function(self)
-	GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT", 2, -2)
-	GameTooltip:SetText("PhanxFlightTimer")
-	GameTooltip:AddDoubleLine(L.FlyingFrom, startPoint, 1, 0.82, 0, 1, 1, 1)
-	GameTooltip:AddDoubleLine(L.FlyingTo, endPoint, 1, 0.82, 0, 1, 1, 1)
-	local t = data[startPoint] and data[startPoint][endPoint] or defaults[startPoint] and defaults[startPoint][endPoint]
-	if t then
-		if t > 60 then
-			GameTooltip:AddDoubleLine(L.EstimatedTime, format(L.TimeMinSec, t/60, mod(t,60)), 1, 0.82, 0, 1, 1, 1)
-		else
-			GameTooltip:AddDoubleLine(L.EstimatedTime, format(L.TimeSec, t), 1, 0.82, 0, 1, 1, 1)
-		end
-	end
-	GameTooltip:Show()
-end)
-
-Addon:SetScript("OnLeave", GameTooltip_Hide)
 
 Addon:UnregisterAllEvents()
 Addon:RegisterEvent("PLAYER_LOGIN")
@@ -80,16 +58,23 @@ function Addon:PLAYER_LOGIN()
 	self:UnregisterEvent("PLAYER_LEVEL_UP")
 	self:UnregisterEvent("PLAYER_LOGIN")
 
-	PhanxFlightData[faction] = PhanxFlightData[faction] or {}
-	data = PhanxFlightData[faction]
+	times = PhanxFlightTimes[faction]
+	names = PhanxFlightNames[faction]
 
-	PhanxFlightDefaultData = defaults
 	defaults = defaults[faction]
 	if not defaults then
 		print(format("|cffff4444[PhanxFlightTimer]|r ERROR: Bad faction name %q", faction))
 	end
 
+	self.bg, self.text, self.border = self:GetRegions()
+	self.bar = self:GetChildren()
+	self.bar:GetStatusBarTexture():SetDrawLayer("BORDER")
+
+	self.title = self:CreateFontString("$parentTitle", "OVERLAY", "GameFontHighlight")
+	self.title:SetPoint("BOTTOM", self, "TOP", 0, 2)
+
 	self:SetPoint("TOP", 0, -168)
+
 	if PhanxBorder then
 		self.bar:ClearAllPoints()
 		self.bar:SetAllPoints(self)
@@ -116,11 +101,40 @@ function Addon:PLAYER_LOGIN()
 	self:RegisterEvent("PLAYER_LEAVING_WORLD")
 end
 
+local function getTaxiNodeInfo(i)
+	local name = strmatch(TaxiNodeName(i), "[^,]+")
+	local x, y = TaxiNodePosition(i)
+	return name, floor(x * 10000 + 0.5) * 10000 + floor(y * 10000 + 0.5)
+end
+
 TaxiFrame:HookScript("OnShow", function(self)
+	local npc = strmatch(UnitGUID("npc"), "Creature%-%d+%-%d+%-%d+%-%d+%-(%d+)%-")
 	for i = 1, NumTaxiNodes() do
-		if TaxiNodeGetType(i) == "CURRENT" then
-			currentPoint = strmatch(TaxiNodeName(i), "[^,]+")
-			break
+		local nodeType = TaxiNodeGetType(i)
+		if nodeType ~= "NONE" then
+			local name, point = getTaxiNodeInfo(i)
+			if nodeType == "CURRENT" then
+				currentName, currentPoint = name, point
+			end
+			if npc == 43287 then
+				-- Sandy Beach, Vashj'ir @ Swift Seahorse
+				name = name .. " (UNDERWATER)"
+			elseif npc == 43290 then
+				-- Sandy Beach, Vashj'ir @ Francis Greene
+				name = name .. " (NORMAL)"
+			end
+			if names[name] and names[name] ~= point then
+				local faction = UnitFactionGroup("player")
+				print(format("|cffff4444[PhanxFlightTimer]|r ERROR: %s taxi node position %q changed!", faction, name))
+				PhanxFlightNames.ErrorLog = PhanxFlightNames.ErrorLog or {}
+				tinsert(PhanxFlightNames.ErrorLog, strjoin(" | ", date("%Y-%m-%d"), faction, name, names[name], point))
+			end
+			names[name] = point
+	--	else
+	--		print("TaxiNodeGetType", i, "NONE", TaxiNodeName(i))
+	--		INFO: type is "NONE" for paths that use a different system,
+	--		eg. Vashj'ir underwater paths when viewed from non-underwater
+	--		points; must fly to Sandy Beach and transfer manually.
 		end
 	end
 end)
@@ -128,8 +142,8 @@ end)
 hooksecurefunc("TaxiNodeOnButtonEnter", function(button)
 	local i = button:GetID()
 	if TaxiNodeGetType(i) == "REACHABLE" then
-		local name = strmatch(TaxiNodeName(i), "[^,]+")
-		local t = data[currentPoint] and data[currentPoint][name] or defaults[currentPoint] and defaults[currentPoint][name]
+		local name, point = getTaxiNodeInfo(i)
+		local t = times[currentPoint] and times[currentPoint][point] or defaults[currentPoint] and defaults[currentPoint][point]
 		if t then
 			if IsInGuild() then
 				t = floor(t / 1.25 + 0.5)
@@ -140,60 +154,55 @@ hooksecurefunc("TaxiNodeOnButtonEnter", function(button)
 				GameTooltip:AddDoubleLine(L.EstimatedTime, format(L.TimeSec, t), 1, 0.82, 0, 1, 1, 1)
 			end
 		else
-			GameTooltip:AddDoubleLine(L.EstimatedTime, UNKNOWN, 1, 0.82, 0, 0.1, 0.1, 1)
+			GameTooltip:AddDoubleLine(L.EstimatedTime, UNKNOWN, 1, 0.82, 0, 0.6, 0.6, 0.6)
 		end
 		GameTooltip:Show()
 	end
 end)
 
-hooksecurefunc("TakeTaxiNode", function(node)
-	--print("TakeTaxiNode", node)
-	startPoint, startTime, endTime = nil, nil, nil
+hooksecurefunc("TakeTaxiNode", function(i)
+	print("TakeTaxiNode", i)
 	inWorld, timeOutOfWorld, tookPort = true, 0, nil
-	for i = 1, NumTaxiNodes() do
-		if i == node then
-			startTime = GetTime()
-			startPoint = currentPoint
-			endPoint = strmatch(TaxiNodeName(i), "[^,]+")
-			break
-		end
-	end
-	--print("    Flying from", startPoint, "to", endPoint, "[^,]+"))
+	startName, startPoint, startTime = currentName, currentPoint, GetTime()
+	endName, endPoint = getTaxiNodeInfo(i)
+	endTime = nil
+	print("    Flying from", startName, "to", endName)
 end)
 
 function Addon:PLAYER_CONTROL_LOST()
-	--print("PLAYER_CONTROL_LOST")
-	if startPoint then
+	print("PLAYER_CONTROL_LOST")
+	if startName then
 		local now = GetTime()
 		if now - startTime < 1 then
-			--print("    Flight started")
+			print("    Flight started")
 			startTime = now
 			guildPerk = IsInGuild()
-			local t = data[startPoint] and data[startPoint][endPoint] or defaults[startPoint] and defaults[startPoint][endPoint]
+			local t = times[startPoint] and times[startPoint][endPoint] or defaults[startPoint] and defaults[startPoint][endPoint]
 			if t then
 				if guildPerk then
+					print("    Has guild perk")
 					t = floor(t / 1.25 + 0.5)
 				end
-				--print("    Expected time", floor(t/60), "m", mod(t,60), "s")
+				print("    Expected time", floor(t/60), "m", mod(t,60), "s")
 				endTime = startTime + t
 				self.bar:SetMinMaxValues(startTime, endTime)
-				self.title:SetText(endPoint)
+				self.title:SetText(endName)
 				self:Show()
 			else
 				endTime = 1
 				self.bar:SetMinMaxValues(0, endTime)
-				self.title:SetText(endPoint)
+				self.title:SetText(endName)
 				self:Show()
 			end
 		else
-			startPoint = nil
+			startName = nil
 			startTime = nil
 		end
 	end
 end
 
 function Addon:PLAYER_CONTROL_GAINED()
-	--print("PLAYER_CONTROL_GAINED")
+	print("PLAYER_CONTROL_GAINED")
 	if startTime and inWorld and not tookPort then
 		local stillHasPerk = IsInGuild()
 		if guildPerk == stillHasPerk then
@@ -205,20 +214,21 @@ function Addon:PLAYER_CONTROL_GAINED()
 				t = floor(t + 0.5)
 			end
 			if not defaults[startPoint] or t ~= defaults[startPoint][endPoint] then
-				--print("   Flight ended")
-				--print("   Elapsed time", floor(t/60), "min", floor(mod(t,60)), "sec")
-				data[startPoint] = data[startPoint] or {}
-				data[startPoint][endPoint] = t
+				print("   Flight ended")
+				print("   Elapsed time", floor(t/60), "min", floor(mod(t,60)), "sec")
+				times[startPoint] = times[startPoint] or {}
+				times[startPoint][endPoint] = t
 			end
-			if not defaults[endPoint] and (not data[endPoint] or not data[endPoint][startPoint]) then
+			if not defaults[endPoint] and (not times[endPoint] or not times[endPoint][startPoint]) then
 				-- Reverse path probably has the same time, use it if there's nothing else
-				data[endPoint] = data[endPoint] or {}
-				data[endPoint][startPoint] = t
+				print("    Reverse was missing")
+				times[endPoint] = times[endPoint] or {}
+				times[endPoint][startPoint] = t
 			end
 		end
 	end
 	self:Hide()
-	startPoint, startTime, endTime = nil, nil, nil
+	startName, startTime, endTime = nil, nil, nil
 end
 
 function Addon:PLAYER_LEAVING_WORLD()
@@ -252,3 +262,21 @@ Addon:SetScript("OnUpdate", function(self, elapsed)
 		self.text:SetText(nil)
 	end
 end)
+
+Addon:SetScript("OnEnter", function(self)
+	GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT", 2, -2)
+	GameTooltip:SetText("PhanxFlightTimer")
+	GameTooltip:AddDoubleLine(L.FlyingFrom, startName, 1, 0.82, 0, 1, 1, 1)
+	GameTooltip:AddDoubleLine(L.FlyingTo, endName, 1, 0.82, 0, 1, 1, 1)
+	local t = times[startPoint] and times[startPoint][endPoint] or defaults[startPoint] and defaults[startPoint][endPoint]
+	if t then
+		if t > 60 then
+			GameTooltip:AddDoubleLine(L.EstimatedTime, format(L.TimeMinSec, t/60, mod(t,60)), 1, 0.82, 0, 1, 1, 1)
+		else
+			GameTooltip:AddDoubleLine(L.EstimatedTime, format(L.TimeSec, t), 1, 0.82, 0, 1, 1, 1)
+		end
+	end
+	GameTooltip:Show()
+end)
+
+Addon:SetScript("OnLeave", GameTooltip_Hide)
