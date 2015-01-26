@@ -161,29 +161,29 @@ hooksecurefunc("TaxiNodeOnButtonEnter", function(button)
 end)
 
 hooksecurefunc("TakeTaxiNode", function(i)
-	print("TakeTaxiNode", i)
+	--print("TakeTaxiNode", i)
 	inWorld, timeOutOfWorld, tookPort = true, 0, nil
 	startName, startPoint, startTime = currentName, currentPoint, GetTime()
 	endName, endPoint = getTaxiNodeInfo(i)
 	endTime = nil
-	print("    Flying from", startName, "to", endName)
+	--print("    Flying from", startName, "to", endName)
 end)
 
 function Addon:PLAYER_CONTROL_LOST()
-	print("PLAYER_CONTROL_LOST")
+	--print("PLAYER_CONTROL_LOST")
 	if startName then
 		local now = GetTime()
 		if now - startTime < 1 then
-			print("    Flight started")
+			--print("    Flight started")
 			startTime = now
 			guildPerk = IsInGuild()
 			local t = times[startPoint] and times[startPoint][endPoint] or defaults[startPoint] and defaults[startPoint][endPoint]
 			if t then
 				if guildPerk then
-					print("    Has guild perk")
+					--print("    Has guild perk")
 					t = floor(t / 1.25 + 0.5)
 				end
-				print("    Expected time", floor(t/60), "m", mod(t,60), "s")
+				--print("    Expected time", floor(t/60), "m", mod(t,60), "s")
 				endTime = startTime + t
 				self.bar:SetMinMaxValues(startTime, endTime)
 				self.title:SetText(endName)
@@ -202,7 +202,7 @@ function Addon:PLAYER_CONTROL_LOST()
 end
 
 function Addon:PLAYER_CONTROL_GAINED()
-	print("PLAYER_CONTROL_GAINED")
+	--print("PLAYER_CONTROL_GAINED")
 	if startTime and inWorld and not tookPort then
 		local stillHasPerk = IsInGuild()
 		if guildPerk == stillHasPerk then
@@ -214,14 +214,14 @@ function Addon:PLAYER_CONTROL_GAINED()
 				t = floor(t + 0.5)
 			end
 			if not defaults[startPoint] or t ~= defaults[startPoint][endPoint] then
-				print("   Flight ended")
-				print("   Elapsed time", floor(t/60), "min", floor(mod(t,60)), "sec")
+				--print("   Flight ended")
+				--print("   Elapsed time", floor(t/60), "min", floor(mod(t,60)), "sec")
 				times[startPoint] = times[startPoint] or {}
 				times[startPoint][endPoint] = t
 			end
 			if not defaults[endPoint] and (not times[endPoint] or not times[endPoint][startPoint]) then
 				-- Reverse path probably has the same time, use it if there's nothing else
-				print("    Reverse was missing")
+				--print("    Reverse was missing")
 				times[endPoint] = times[endPoint] or {}
 				times[endPoint][startPoint] = t
 			end
